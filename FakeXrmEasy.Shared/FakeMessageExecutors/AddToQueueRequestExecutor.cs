@@ -48,23 +48,34 @@ namespace FakeXrmEasy.FakeMessageExecutors
                 }
             }).Entities.FirstOrDefault();
 
-            var createQueueItem = existingQueueItem ?? new Entity
+            Guid? queueItemId = existingQueueItem?.Id;
+
+            var queueItem = existingQueueItem ?? new Entity
             {
                 LogicalName = "queueitem",
                 // QueueItemProperties are used for initializing new queueitems
                 Attributes = queueItemProperties?.Attributes
             };
 
-            createQueueItem["queueid"] = new EntityReference("queue", destinationQueueId);
-            createQueueItem["objectid"] = target;
+            queueItem["queueid"] = new EntityReference("queue", destinationQueueId);
+            queueItem["objectid"] = target;
 
-            var guid = service.Create(createQueueItem);
+            
+            if (queueItemId.HasValue)
+            {
+                service.Update(queueItem);
+            }
+            else
+            {
+                queueItemId = service.Create(queueItem);
+            }
 
             return new AddToQueueResponse()
             {
                 ResponseName = "AddToQueue",
-                Results = new ParameterCollection { { "QueueItemId", guid } }
+                Results = new ParameterCollection { { "QueueItemId", queueItemId.Value } }
             };
+
         }
 
         public Type GetResponsibleRequestType()
